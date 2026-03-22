@@ -10,6 +10,8 @@
 
       gtag('config', 'G-E5G6LV4RNY');
     </script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5388096719318053"
+         crossorigin="anonymous"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QPS Redundancy/Retrenchment Calculator</title>
@@ -392,6 +394,14 @@
                         <label for="partTimeFraction">Part-time Fraction (e.g., 0.6 for 60%)</label>
                         <input type="number" id="partTimeFraction" step="0.1" min="0.1" max="1" value="1">
                     </div>
+
+                    <div class="form-group full-width">
+                        <label for="redundancyType">Redundancy Type</label>
+                        <select id="redundancyType">
+                            <option value="forced">Forced</option>
+                            <option value="voluntary">Voluntary</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="disclaimer-section">
@@ -432,6 +442,10 @@
                         <h3>Long Service Leave</h3>
                         <div class="amount" id="lslAmount">$0</div>
                     </div>
+                    <div class="result-item" id="voluntaryCard" style="display:none;">
+                        <h3>Voluntary Redundancy Payment</h3>
+                        <div class="amount" id="voluntaryAmount">$0</div>
+                    </div>
                     <div class="result-item total-payout">
                         <h3>Total Pre-Tax Payout</h3>
                         <div class="amount" id="totalAmount">$0</div>
@@ -448,6 +462,7 @@
                     <h4 style="margin-top: 20px;">Important Notes</h4>
                     <ul>
                         <li>Severance payment: 2 weeks' pay per year of service (minimum 4 weeks, maximum 52 weeks)</li>
+                        <li>Voluntary Redundancy: additional payment of $6,500 or 12 weeks' pay, whichever is greater</li>
                         <li>Long Service Leave auto-calculation: 1.3 weeks per year of service (requires at least 1 year)</li>
                         <li>This calculator is based on QPS Directive 04/18</li>
                         <li>Actual payments may vary — consult with HR for official calculations</li>
@@ -539,14 +554,24 @@
                         lslAmount = lslWeeks * weeklyRate;
                     }
 
+                    // Calculate voluntary redundancy payment if applicable
+                    let voluntaryAmount = 0;
+                    const redundancyType = document.getElementById('redundancyType').value;
+                    if (redundancyType === 'voluntary') {
+                        const twelveWeeksPay = 12 * weeklyRate;
+                        voluntaryAmount = Math.max(6500, twelveWeeksPay);
+                    }
+
                     // Calculate total
-                    const totalAmount = severanceAmount + annualLeaveAmount + lslAmount;
+                    const totalAmount = severanceAmount + annualLeaveAmount + lslAmount + voluntaryAmount;
 
                     // Display results
                     document.getElementById('severanceAmount').textContent = formatCurrency(severanceAmount);
                     document.getElementById('annualLeaveAmount').textContent = formatCurrency(annualLeaveAmount);
                     document.getElementById('lslAmount').textContent = formatCurrency(lslAmount);
+                    document.getElementById('voluntaryAmount').textContent = formatCurrency(voluntaryAmount);
                     document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+                    document.getElementById('voluntaryCard').style.display = redundancyType === 'voluntary' ? 'block' : 'none';
 
                     // Generate calculation breakdown
                     let breakdownHTML = '<table style="width:100%; border-collapse: collapse; color: #2c3e50; font-size: 0.95em;">';
@@ -597,6 +622,17 @@
                         breakdownHTML += '<tr><td style="padding:8px 10px; font-weight:600; color:#aaa;">Long Service Leave</td>';
                         breakdownHTML += '<td style="padding:8px 10px; color:#aaa;">Requires at least 1 year of service</td>';
                         breakdownHTML += '<td style="padding:8px 10px; text-align:right; color:#aaa;">$0.00</td></tr>';
+                    }
+
+                    // Voluntary redundancy
+                    if (redundancyType === 'voluntary') {
+                        const twelveWeeksPay = 12 * weeklyRate;
+                        const usedMinimum = voluntaryAmount === 6500;
+                        breakdownHTML += '<tr><td style="padding:8px 10px; font-weight:600;">Voluntary Redundancy Payment</td>';
+                        breakdownHTML += '<td style="padding:8px 10px;">Greater of $6,500 or 12 weeks\' pay (12 × ' + formatCurrency(weeklyRate) + ' = ' + formatCurrency(twelveWeeksPay) + ')';
+                        if (usedMinimum) breakdownHTML += ' <em>($6,500 minimum applied)</em>';
+                        breakdownHTML += '</td>';
+                        breakdownHTML += '<td style="padding:8px 10px; text-align:right; font-weight:700;">' + formatCurrency(voluntaryAmount) + '</td></tr>';
                     }
 
                     // Total row
